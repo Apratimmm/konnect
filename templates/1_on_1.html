@@ -327,7 +327,8 @@
             };
 
             // Create WebSocket connection
-            const ws = new WebSocket(`ws://${window.location.host}/1-on-1_chat/${roomId}/${username}/`);
+            const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+            const ws = new WebSocket(`${wsScheme}://${window.location.host}/1-on-1_chat/${roomId}/${username}/`);
             activeRooms[roomId].socket = ws;
 
             ws.onopen = () => {
