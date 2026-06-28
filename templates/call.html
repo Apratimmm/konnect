@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Call - {{ room_id }}</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+            user-select: none;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .participant-card {
+            transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .speaking-ring {
+            box-shadow: 0 0 0 4px #4ade80, 0 0 40px 15px rgba(74, 222, 128, 0.6) !important;
+            z-index: 50;
+        }
+
+        video {
+            object-fit: cover;
+            transform: scaleX(-1);
+            border-radius: 2.5rem;
+            /* Match the card rounding */
+        }
+
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .bg-pattern {
+            background-image: radial-gradient(#3b82f61a 1.5px, transparent 1.5px);
+            background-size: 24px_24px;
+        }
+    </style>
+</head>
+
+<body class="h-screen w-screen flex flex-col overflow-hidden bg-pattern">
+
+    <!-- Header -->
+    <header class="p-5 flex items-center justify-between border-b border-blue-50 bg-white/60 backdrop-blur-md z-10">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-green-500/10 rounded-xl">
+                <div class="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
+            </div>
+            <div>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Encrypted
+                    Room</p>
+                <h1 class="text-xs font-bold text-slate-700 tracking-wider">{{ room_id }}</h1>
+            </div>
+        </div>
+        <p id="call_timer" class="text-xs font-mono text-slate-400 tracking-widest">00:00</p>
+    </header>
+
+    <!-- Content Area -->
+    <main id="participants_container"
+        class="flex-1 flex flex-wrap items-center justify-center gap-6 p-6 overflow-y-auto custom-scrollbar transition-all duration-300">
+        <div id="loader" class="flex flex-col items-center gap-4 text-slate-400 animate-bounce">
+            <span class="material-icons text-4xl">cloud_sync</span>
+            <p class="text-[10px] font-bold uppercase tracking-widest">Joining Voice Node</p>
+        </div>
+    </main>
+
+    <!-- Controls -->
+    <footer
+        class="p-8 pb-10 bg-white/60 backdrop-blur-xl border-t border-blue-50 flex items-center justify-center gap-8 z-10">
+        <!-- Mic Toggle -->
+        <button id="toggle_mic_btn" onclick="window.callToggleMic()"
+            class="group w-14 h-14 glass-panel hover:bg-white text-slate-600 rounded-2xl flex items-center justify-center shadow-marble transition-all active:scale-90 border-slate-200">
+            <span class="material-icons text-2xl group-hover:scale-110 transition-transform">mic</span>
+        </button>
+
+        <!-- End Call -->
+        <button onclick="window.close()"
+            class="w-16 h-16 bg-red-500 hover:bg-red-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-red-500/30 transition-all active:scale-95 group">
+            <span class="material-icons text-3xl group-hover:rotate-135 transition-transform">call_end</span>
+        </button>
+
+        <!-- Video Toggle -->
+        <button id="toggle_video_btn" onclick="window.callToggleVideo()"
+            class="group w-14 h-14 glass-panel hover:bg-white text-slate-600 rounded-2xl flex items-center justify-center shadow-marble transition-all active:scale-90 border-slate-200">
+            <span class="material-icons text-2xl group-hover:scale-110 transition-transform">videocam_off</span>
+        </button>
+    </footer>
+
+    <script>
+        const TOKEN = "{{ token }}";
+        const LIVEKIT_URL = "{{ url }}";
+        const CALL_USERNAME = "{{ username }}";
+
+        let livekitRoom = null;
+        let isMicMuted = false;
+        let isVideoEnabled = false;
+        let startTime = null;
+
+        async function startCall() {
+            try {
+                livekitRoom = new LivekitClient.Room({
+                    adaptiveStream: true,
+                    dynacast: true,
+                    audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    videoCaptureDefaults: { resolution: LivekitClient.VideoPresets.h720.resolution, facingMode: 'user' }
+                });
+
+                setupEventListeners();
+                await livekitRoom.prepareConnection(LIVEKIT_URL, TOKEN);
+                await livekitRoom.connect(LIVEKIT_URL, TOKEN);
+
+                const loader = document.getElementById('loader');
+                if (loader) loader.remove();
+
+                // Notify the opener window to send a "join" signal via WebSocket
+                if (window.opener && typeof window.opener.sendCallJoinSignal === 'function') {
+                    window.opener.sendCallJoinSignal();
+                }
+
+                // Publish Audio
+                await livekitRoom.localParticipant.setMicrophoneEnabled(true);
+                updateParticipantsUI();
+
+                startTime = Date.now();
+                setInterval(() => {
+                    if (!startTime) return;
+                    const diff = Math.floor((Date.now() - startTime) / 1000);
+                    const mins = Math.floor(diff / 60).toString().padStart(2, '0');
+                    const secs = (diff % 60).toString().padStart(2, '0');
+                    const timerEl = document.getElementById('call_timer');
+                    if (timerEl) timerEl.textContent = `${mins}:${secs}`;
+                }, 1000);
+
+            } catch (err) {
+                console.error("Critical Call Error:", err);
+                document.getElementById('participants_container').innerHTML = `
+                <div class="flex flex-col items-center gap-6 glass-panel p-8 rounded-[2.5rem] shadow-xl">
+                    <span class="material-icons text-red-500 text-6xl">cloud_off</span>
+                    <p class="text-slate-700 font-bold max-w-[200px] leading-relaxed">Could not establish connection. Please try again.</p>
+                </div>`;
+            }
+        }
+
+        function setupEventListeners() {
+            if (!livekitRoom) return;
+            livekitRoom
+                .on(LivekitClient.RoomEvent.ParticipantConnected, () => updateParticipantsUI())
+                .on(LivekitClient.RoomEvent.ParticipantDisconnected, () => updateParticipantsUI())
+                .on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
+                    if (track.kind === LivekitClient.Track.Kind.Audio || track.kind === LivekitClient.Track.Kind.Video) track.attach();
+                    updateParticipantsUI();
+                })
+                .on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => { track.detach(); updateParticipantsUI(); })
+                .on(LivekitClient.RoomEvent.TrackMuted, () => updateParticipantsUI())
+                .on(LivekitClient.RoomEvent.TrackUnmuted, () => updateParticipantsUI())
+                .on(LivekitClient.RoomEvent.LocalTrackPublished, () => updateParticipantsUI())
+                .on(LivekitClient.RoomEvent.LocalTrackUnpublished, () => updateParticipantsUI())
+                .on(LivekitClient.RoomEvent.ActiveSpeakersChanged, (speakers) => {
+                    const all = [livekitRoom.localParticipant, ...livekitRoom.remoteParticipants.values()];
+                    all.forEach(p => {
+                        const card = document.getElementById(`p-${p.identity}`);
+                        if (card) {
+                            const isSpeaking = speakers.includes(p);
+                            if (isSpeaking) {
+                                card.classList.add('speaking-ring');
+                            } else {
+                                card.classList.remove('speaking-ring');
+                            }
+                        }
+                    });
+                })
+                .on(LivekitClient.RoomEvent.Disconnected, () => { window.close(); });
+        }
+
+        function updateParticipantsUI() {
+            const container = document.getElementById('participants_container');
+            if (!container || !livekitRoom) return;
+
+            const all = [livekitRoom.localParticipant, ...livekitRoom.remoteParticipants.values()];
+
+            const existingIds = new Set(all.map(p => `p-${p.identity}`));
+            Array.from(container.children).forEach(child => {
+                if (child.id && !existingIds.has(child.id)) child.remove();
+            });
+
+            all.forEach(p => {
+                let pCard = document.getElementById(`p-${p.identity}`);
+                if (!pCard) {
+                    pCard = document.createElement('div');
+                    pCard.id = `p-${p.identity}`;
+                    pCard.className = 'participant-card relative flex items-center justify-center bg-white rounded-[3rem] overflow-hidden shadow-marble min-w-[200px] min-h-[200px]';
+                    container.appendChild(pCard);
+                }
+
+                const isLocal = p === livekitRoom.localParticipant;
+                const videoPub = Array.from(p.videoTrackPublications.values())[0];
+                const isVideoOff = !videoPub || videoPub.isMuted;
+
+                const audioPub = Array.from(p.audioTrackPublications.values())[0];
+                const isAudioMuted = audioPub ? audioPub.isMuted : true;
+                const isCurrentlySpeaking = livekitRoom.activeSpeakers.includes(p);
+
+                // Remove transition temporarily for instant swap
+                pCard.style.transition = 'none';
+
+                if (!isVideoOff) {
+                    const videoTrack = videoPub.videoTrack;
+                    pCard.className = 'participant-card relative flex items-center justify-center bg-transparent rounded-[2.5rem] w-full max-w-xl aspect-video h-auto mx-auto';
+                    if (isCurrentlySpeaking) pCard.classList.add('speaking-ring');
+
+                    pCard.innerHTML = '';
+                    const videoEl = videoTrack.attach();
+                    videoEl.className = 'w-full h-full object-cover';
+                    videoEl.setAttribute('disablePictureInPicture', 'true');
+                    if (isLocal) videoEl.style.transform = 'scaleX(-1)';
+                    pCard.appendChild(videoEl);
+                } else {
+                    pCard.className = 'participant-card relative flex items-center justify-center bg-white rounded-[3rem] shadow-marble w-56 h-56 border-2 border-slate-100';
+                    if (isCurrentlySpeaking) pCard.classList.add('speaking-ring');
+
+                    pCard.innerHTML = `
+                    <span class="material-icons text-7xl ${isLocal ? 'text-slate-800' : 'text-slate-300'}">
+                        ${isLocal ? 'person' : 'account_circle'}
+                    </span>`;
+                }
+
+                // Re-enable transition for the glow after a short frameset
+                setTimeout(() => { pCard.style.transition = ''; }, 50);
+
+                const overlays = document.createElement('div');
+                overlays.className = 'absolute inset-0 pointer-events-none p-5 flex flex-col justify-between z-20';
+                overlays.innerHTML = `
+                <div class="flex justify-end">
+                    ${isAudioMuted ? `
+                    <div class="w-8 h-8 glass-panel text-red-500 rounded-2xl flex items-center justify-center border-white shadow-lg animate-in zoom-in duration-300">
+                        <span class="material-icons text-sm">mic_off</span>
+                    </div>` : ''}
+                </div>
+                <div class="flex justify-center">
+                    <div class="px-4 py-2 glass-panel border-white/40 rounded-2xl shadow-marble transform translate-y-2">
+                        <p class="text-[10px] font-bold text-slate-800 uppercase truncate max-w-[120px] tracking-widest leading-none">
+                            ${isLocal ? 'You' : p.identity}
+                        </p>
+                    </div>
+                </div>`;
+                pCard.appendChild(overlays);
+            });
+        }
+
+        window.callToggleMic = async function () {
+            if (!livekitRoom) return;
+            try {
+                isMicMuted = !isMicMuted;
+                await livekitRoom.localParticipant.setMicrophoneEnabled(!isMicMuted);
+                const btn = document.getElementById('toggle_mic_btn');
+                const icon = btn.querySelector('.material-icons');
+                icon.textContent = isMicMuted ? 'mic_off' : 'mic';
+                btn.classList.toggle('text-red-500', isMicMuted);
+                btn.classList.toggle('bg-red-50', isMicMuted);
+                updateParticipantsUI();
+            } catch (err) { console.error("Mic toggle failed:", err); }
+        };
+
+        window.callToggleVideo = async function () {
+            if (!livekitRoom) return;
+            try {
+                isVideoEnabled = !isVideoEnabled;
+                await livekitRoom.localParticipant.setCameraEnabled(isVideoEnabled);
+                const btn = document.getElementById('toggle_video_btn');
+                const icon = btn.querySelector('.material-icons');
+                icon.textContent = isVideoEnabled ? 'videocam' : 'videocam_off';
+                btn.classList.toggle('text-blue-600', isVideoEnabled);
+                btn.classList.toggle('bg-blue-50', isVideoEnabled);
+                updateParticipantsUI();
+            } catch (err) { console.error("Video toggle failed:", err); isVideoEnabled = !isVideoEnabled; }
+        };
+
+        document.addEventListener('DOMContentLoaded', startCall);
+
+        window.addEventListener('beforeunload', () => {
+            // Notify parent window that this user left the call
+            if (window.opener && !window.opener.closed) {
+                window.opener.postMessage(
+                    { type: 'call_left', username: CALL_USERNAME },
+                    window.location.origin
+                );
+            }
+
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon("{% url 'leave_call' %}");
+            } else {
+                fetch("{% url 'leave_call' %}", { method: 'POST', keepalive: true });
+            }
+        });
+    </script>
+</body>
+
+</html>

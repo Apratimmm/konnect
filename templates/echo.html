@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONNECT - Echo</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1f2937",
+                        "background-marble": "#F2F8FC",
+                    },
+                    fontFamily: {
+                        sans: ["Ubuntu", "sans-serif"],
+                    },
+                    boxShadow: {
+                        'marble': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'Ubuntu', sans-serif;
+            background-color: #F2F8FC;
+            color: #1f2937;
+        }
+
+        .marble-card {
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-6 bg-[#F2F8FC]">
+    <div class="w-full max-w-2xl h-[85vh] flex flex-col marble-card rounded-[2rem] shadow-marble overflow-hidden">
+        <header class="p-8 border-b border-gray-100 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-sm">
+                    <span class="material-icons text-2xl">vibration</span>
+                </div>
+                <div>
+                    <h1 class="text-xl font-serif font-bold text-slate-900">Echo Experiment</h1>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">WebSocket Feedback Loop
+                    </p>
+                </div>
+            </div>
+            <a href="/"
+                class="w-10 h-10 hover:bg-gray-50 rounded-full flex items-center justify-center text-slate-400 transition-colors border border-transparent hover:border-gray-200">
+                <span class="material-icons">close</span>
+            </a>
+        </header>
+
+        <div id="show_messages"
+            class="flex-1 overflow-y-auto p-8 space-y-4 custom-scrollbar bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] bg-slate-50/30">
+            <!-- Messages will appear here -->
+        </div>
+
+        <footer class="p-8 bg-white border-t border-gray-100">
+            <div
+                class="flex gap-4 p-2 pl-6 bg-white rounded-full border border-gray-200 shadow-marble focus-within:ring-2 focus-within:ring-slate-900/10 transition-all">
+                <input id="message_input" type="text" placeholder="Type something to hear it back..."
+                    class="flex-1 bg-transparent border-none focus:ring-0 text-slate-700 font-light placeholder-slate-400"
+                    onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button onclick="sendMessage()"
+                    class="px-8 bg-slate-900 hover:bg-black text-white font-medium rounded-full shadow-lg transition-all active:scale-95 border border-black">
+                    Send
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const msgContainer = document.getElementById("show_messages");
+        const websocket = new WebSocket('ws://' + window.location.host + '/echo/');
+
+        websocket.onopen = () => appendLog("system", "Connected to Echo Server");
+        websocket.onclose = () => appendLog("system", "Connection Closed");
+
+        websocket.onmessage = (e) => {
+            const reply = JSON.parse(e.data);
+            appendLog("echo", reply.message);
+        };
+
+        function sendMessage() {
+            const input = document.getElementById("message_input");
+            const text = input.value.trim();
+            if (text) {
+                websocket.send(JSON.stringify({ "sent_text": text }));
+                appendLog("user", text);
+                input.value = "";
+            }
+        }
+
+        function appendLog(type, text) {
+            const div = document.createElement("div");
+            div.className = "flex animate-in slide-in-from-bottom-2 duration-300";
+
+            if (type === 'system') {
+                div.className = "flex justify-center my-4";
+                div.innerHTML = `<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-white/80 border border-slate-100 px-4 py-1.5 rounded-full shadow-sm">${text}</span>`;
+            } else if (type === 'user') {
+                div.className = "flex justify-end";
+                div.innerHTML = `
+                <div class="flex flex-col items-end max-w-[80%]">
+                    <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white px-5 py-3 rounded-3xl rounded-br-none border border-slate-800 shadow-sm">
+                        <p class="text-[15px] font-normal leading-relaxed">${text}</p>
+                    </div>
+                </div>`;
+            } else {
+                div.innerHTML = `
+                <div class="flex flex-col items-start max-w-[80%]">
+                    <div class="bg-white text-slate-700 px-5 py-3 rounded-3xl rounded-bl-none border border-slate-200 shadow-sm">
+                        <p class="text-[15px] font-normal leading-relaxed">${text}</p>
+                    </div>
+                </div>`;
+            }
+
+            msgContainer.appendChild(div);
+            msgContainer.scrollTo({
+                top: msgContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    </script>
+</body>
+
+</html>

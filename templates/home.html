@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KONNECT - Home</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1f2937",
+                        "background-marble": "#F2F8FC",
+                        "surface-light": "#FFFFFF",
+                        "border-dark": "#374151",
+                    },
+                    fontFamily: {
+                        sans: ["Ubuntu", "sans-serif"],
+                    },
+                    boxShadow: {
+                        'marble': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'marble-hover': '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'Ubuntu', sans-serif;
+            background-color: #F2F8FC;
+            color: #1f2937;
+        }
+
+        .marble-card {
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .marble-card:hover {
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+            border-color: #d1d5db;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-6 bg-[#F2F8FC]">
+    <div class="w-full max-w-5xl grid md:grid-cols-2 gap-16 items-center">
+        <!-- Brand Section -->
+        <div class="space-y-10 text-left">
+            <div class="flex items-center gap-4">
+                <h1 class="text-2xl font-sans font-medium tracking-[0.15em] uppercase text-slate-900">KONNECT</h1>
+            </div>
+
+            <div class="space-y-6">
+                <h2 class="text-5xl font-sans font-bold text-slate-400 leading-tight">
+                    Communicate with <br> minimalism
+                </h2>
+            </div>
+        </div>
+
+        <!-- Right Side: State Containers -->
+        <div class="relative w-full">
+            <!-- Action Card (Now Visible by Default) -->
+            <div id="action-card"
+                class="marble-card rounded-[2rem] p-12 space-y-8 animate-in slide-in-from-right-4 duration-500">
+                <div id="landing-view" class="space-y-8">
+                    <div class="space-y-3">
+                        <h3 id="welcome-back-msg" class="text-2xl font-sans font-bold text-slate-900">
+                            Hello, {{ request.user.username }}!
+                        </h3>
+                        <p class="text-slate-500 font-light">Choose your room and start chatting.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4">
+                        <button onclick="showJoinForm('1_on_1')"
+                            class="w-full group bg-slate-900 hover:bg-black text-white p-5 rounded-full font-medium transition-all active:scale-[0.98] flex items-center justify-between border border-black shadow-lg">
+                            <span class="flex items-center gap-3">
+                                <span class="material-icons">person</span>
+                                Private Channel
+                            </span>
+                            <span
+                                class="material-icons opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0">arrow_forward</span>
+                        </button>
+
+                        <button onclick="showJoinForm('group_chat')"
+                            class="w-full group bg-slate-900 hover:bg-black text-white p-5 rounded-full font-medium transition-all active:scale-[0.98] flex items-center justify-between border border-black shadow-lg">
+                            <span class="flex items-center gap-3">
+                                <span class="material-icons">groups</span>
+                                Group Channel
+                            </span>
+                            <span
+                                class="material-icons opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0">arrow_forward</span>
+                        </button>
+                    </div>
+
+                    <a href="{% url 'logout' %}"
+                        class="w-full flex items-center justify-center gap-2 p-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-full font-medium text-sm transition-all active:scale-[0.98] border border-red-200">
+                        <span class="material-icons text-lg">logout</span>
+                        Log Out
+                    </a>
+                </div>
+
+                <!-- Join Form (Initially Hidden) -->
+                <div id="join-form" class="hidden space-y-6 animate-in slide-in-from-right-4 duration-500">
+                    <div class="flex items-center gap-4">
+                        <button onclick="hideJoinForm()"
+                            class="w-10 h-10 hover:bg-gray-50 rounded-full flex items-center justify-center text-slate-500 transition-colors border border-transparent hover:border-gray-200">
+                            <span class="material-icons">arrow_back</span>
+                        </button>
+                        <h3 id="form-title" class="text-2xl font-sans font-bold text-slate-900">Room Details</h3>
+                    </div>
+
+                    <div class="space-y-5">
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Room
+                                ID</label>
+                            <input id="room-id-input" type="text" placeholder="Enter ID (e.g. 101)"
+                                onkeypress="if(event.key === 'Enter') submitJoin()"
+                                class="w-full bg-gray-50 border-gray-200 focus:border-slate-900 focus:ring-0 rounded-2xl p-4 text-slate-700 font-light transition-all">
+                        </div>
+                    </div>
+
+                    <div id="error-msg" class="hidden text-sm font-medium text-red-600 text-center">
+                        Please provide a room ID.
+                    </div>
+
+                    <button onclick="submitJoin()"
+                        class="w-full bg-slate-900 hover:bg-black text-white p-5 rounded-full font-medium shadow-lg transition-all active:scale-[0.98] border border-black">
+                        Enter Room
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Use the logged-in username from Django context
+        const globalUsername = "{{ request.user.username }}";
+        let currentChatType = "";
+
+        function showJoinForm(type) {
+            currentChatType = type;
+            document.getElementById('landing-view').classList.add('hidden');
+            document.getElementById('join-form').classList.remove('hidden');
+
+            const titleEl = document.getElementById('form-title');
+            if (type === '1_on_1') {
+                titleEl.innerText = "Private Chat";
+            } else {
+                titleEl.innerText = "Group Chat";
+            }
+
+            setTimeout(() => {
+                document.getElementById('room-id-input').focus();
+            }, 100);
+        }
+
+        function hideJoinForm() {
+            document.getElementById('landing-view').classList.remove('hidden');
+            document.getElementById('join-form').classList.add('hidden');
+            document.getElementById('error-msg').classList.add('hidden');
+        }
+
+        function submitJoin() {
+            const roomId = document.getElementById('room-id-input').value.trim();
+            const errorMsg = document.getElementById('error-msg');
+
+            if (roomId) {
+                const path = currentChatType === '1_on_1' ? '1-on-1_chat' : 'group_chat';
+                window.location.href = `/${path}/${roomId}/`;
+            } else {
+                errorMsg.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+
+</html>

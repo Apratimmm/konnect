@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>CONNECT</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1f2937",
+                        "background-marble": "#F2F8FC",
+                        "surface-light": "#FFFFFF",
+                        "border-dark": "#374151",
+                    },
+                    fontFamily: {
+                        sans: ["Ubuntu", "sans-serif"],
+                    },
+                    boxShadow: {
+                        'marble': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'marble-hover': '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'Ubuntu', sans-serif;
+            background-color: #FFFFFF;
+            color: #1f2937;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .marble-card {
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .marble-card:hover {
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+            border-color: #d1d5db;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center p-1 lg:p-2 bg-white">
+
+    <div class="flex gap-4 w-full h-[95vh] max-w-[98%] mt-1">
+        <!-- Left Sidebar Column (User Info + Activity Feed) -->
+        <aside class="w-80 flex flex-col gap-4 h-full flex-shrink-0">
+            <!-- User Info Card -->
+            <div
+                class="px-8 py-6 flex items-center gap-3 bg-white h-24 rounded-2xl shadow-sm border border-slate-200 flex-shrink-0">
+                <div
+                    class="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                    {{ username|slice:":1"|upper }}
+                </div>
+                <p class="font-medium text-slate-900">{{ request.user.username }}</p>
+            </div>
+
+            <!-- Activity Feed Card -->
+            <div id="notifications_container"
+                class="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-white rounded-2xl shadow-sm border border-slate-200">
+                <!-- System messages and rename notifications will appear here -->
+            </div>
+
+        </aside>
+
+        <!-- Chat Window Card (Center) -->
+        <main
+            class="flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full">
+            <header class="px-8 py-6 flex items-center justify-between border-b border-gray-100 h-24 flex-shrink-0">
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-4">
+                        <h2 id="room_name_display" class="text-2xl font-sans font-bold text-slate-900">Room {{ room_id
+                            }}</h2>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 relative">
+                    <!-- Rename UI (Hidden by default, extends to the left) -->
+                    <div id="rename_ui"
+                        class="hidden items-center gap-2 bg-white border border-slate-200 rounded-full px-2 py-1 shadow-sm mr-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                        <input id="rename_input" type="text"
+                            class="px-4 py-1.5 text-sm border-none focus:ring-0 bg-transparent w-40"
+                            placeholder="New name...">
+                        <button onclick="submitRename()"
+                            class="bg-slate-900 text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-black transition-colors uppercase">Done</button>
+                    </div>
+
+                    <button id="call_btn" onclick="initiateCall()" class="flex items-center gap-2 px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-full font-medium text-sm transition-all active:scale-95 border border-green-200">
+                        <span class="material-icons text-lg">call</span>
+                        <span>Call</span>
+                    </button>
+                    <button id="rename_toggle_btn" onclick="toggleRename()"
+                        class="flex items-center gap-2 px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-full font-medium text-sm transition-all active:scale-95 border border-purple-200">
+                        <span class="material-icons text-lg">edit</span>
+                        <span id="rename_btn_text">Rename</span>
+                    </button>
+                    <button onclick="leaveCurrentRoom()"
+                        class="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-full font-medium text-sm transition-all active:scale-95 border border-red-200">
+                        <span class="material-icons text-lg">logout</span>
+                        Leave Chat
+                    </button>
+                </div>
+            </header>
+
+            <!-- Message Area -->
+            <div id="message_container"
+                class="flex-1 overflow-y-auto p-6 md:p-10 space-y-6 custom-scrollbar bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] bg-slate-50/30">
+                <!-- Messages will be appended here -->
+            </div>
+
+            <!-- Footer Area -->
+            <footer class="h-24 p-5 bg-white border-t border-gray-100 flex-shrink-0 flex items-center">
+                <div
+                    class="w-full flex items-center gap-4 bg-slate-50 p-2 pl-6 rounded-full border border-gray-200 focus-within:bg-white focus-within:ring-1 focus-within:ring-slate-200 transition-all">
+                    <input id="media_input" type="file" class="hidden" onchange="uploadFile(this)"
+                        accept="image/*,video/*,audio/*" />
+                    <button onclick="document.getElementById('media_input').click()"
+                        class="text-slate-400 hover:text-slate-600 transition-colors">
+                        <span class="material-icons">attach_file</span>
+                    </button>
+                    <input id="message_input"
+                        class="flex-1 bg-transparent border-none focus:ring-0 text-slate-800 placeholder-slate-400 font-light"
+                        placeholder="Type your message..." type="text"
+                        onkeypress="if(event.key === 'Enter') sendMessage()" />
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="sendMessage()"
+                            class="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-white shadow-lg active:scale-90 transition-transform hover:bg-black">
+                            <span class="material-icons">send</span>
+                        </button>
+                    </div>
+                </div>
+            </footer>
+        </main>
+
+        <!-- Right Sidebar (Chat Container) -->
+        <aside class="w-80 flex flex-col gap-4 h-full flex-shrink-0">
+            <!-- Active Rooms Card -->
+            <div class="flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <header class="px-8 py-6 h-24 flex items-center justify-between border-b border-gray-100 flex-shrink-0">
+                    <h3 class="text-lg font-bold text-slate-900">Active Rooms</h3>
+                    <button onclick="showAddRoomModal()"
+                        class="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-black transition-all active:scale-95">
+                        <span class="material-icons">add</span>
+                    </button>
+                </header>
+                <div id="room_list_container" class="flex-1 p-6 space-y-2 overflow-y-auto custom-scrollbar">
+                    <!-- Room list items will be added here -->
+                </div>
+            </div>
+
+            <!-- Navigation Card -->
+            <div
+                class="h-24 p-5 bg-white rounded-2xl shadow-sm border border-slate-200 flex-shrink-0 flex items-center">
+                <button onclick="window.location.href=`{% url 'home' %}`"
+                    class="w-full flex items-center justify-center gap-3 py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl font-medium text-sm transition-all active:scale-95 border border-slate-200">
+                    <span class="material-icons text-lg">home</span>
+                    HOME
+                </button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Max Members Modal -->
+    <div id="max_members_modal"
+        class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+        <div
+            class="bg-white rounded-[2rem] shadow-2xl max-w-sm w-full p-8 text-center border border-slate-100 animate-in fade-in zoom-in duration-300">
+            <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span class="material-icons text-red-500 text-4xl">group_off</span>
+            </div>
+            <h3 class="text-2xl font-bold text-slate-900 mb-2">Room Full</h3>
+            <p id="max_members_message" class="text-slate-500 mb-8 font-light leading-relaxed">This room
+                already has two members.</p>
+            <button onclick="handleRoomFullBack()"
+                class="w-full flex items-center justify-center py-4 bg-[#f18308]/10 hover:bg-[#f18308]/20 text-[#f18308] rounded-full text-base transition-all active:scale-95 border border-[#f18308]/30 shadow-md tracking-widest">
+                Understood !
+            </button>
+        </div>
+    </div>
+
+    <!-- Add Room Modal -->
+    <div id="add_room_modal"
+        class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+        <div
+            class="relative bg-white rounded-[2.5rem] shadow-2xl max-w-sm w-full p-10 text-center border border-slate-100 animate-in fade-in zoom-in duration-300">
+            <button onclick="hideAddRoomModal()"
+                class="absolute right-6 top-6 text-slate-300 hover:text-slate-900 transition-colors">
+                <span class="material-icons text-2xl">close</span>
+            </button>
+            <div id="modal_step_1" class="space-y-8">
+                <div class="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                    <span class="material-icons text-slate-900 text-4xl">chat_bubble_outline</span>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-slate-900 mb-2">Connect New</h3>
+                </div>
+                <div class="space-y-3">
+                    <button onclick="selectChatType('1-on-1_chat')"
+                        class="w-full flex items-center justify-between p-5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-2xl font-bold transition-all border border-slate-200 group">
+                        <span class="flex items-center gap-3">
+                            <span class="material-icons text-slate-400 group-hover:text-slate-900">person</span>
+                            1-on-1 Chat
+                        </span>
+                        <span class="material-icons text-slate-300 group-hover:text-slate-900">chevron_right</span>
+                    </button>
+                    <button onclick="selectChatType('group_chat')"
+                        class="w-full flex items-center justify-between p-5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-2xl font-bold transition-all border border-slate-200 group">
+                        <span class="flex items-center gap-3">
+                            <span class="material-icons text-slate-400 group-hover:text-slate-900">groups</span>
+                            Group Channel
+                        </span>
+                        <span class="material-icons text-slate-300 group-hover:text-slate-900">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="modal_step_2" class="hidden space-y-8">
+                <div class="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+                    <span id="step_2_icon" class="material-icons text-slate-900 text-4xl">add_comment</span>
+                </div>
+                <div>
+                    <h3 id="step_2_title" class="text-2xl font-bold text-slate-900 mb-2">Join Room</h3>
+                    <p class="text-slate-500 font-light leading-relaxed">Enter a room ID to start the conversation.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="relative group">
+                        <input id="new_room_id_input" type="text"
+                            class="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-slate-900 focus:bg-white focus:ring-0 transition-all text-center text-xl font-bold text-slate-900 placeholder:text-slate-300 placeholder:font-normal font-sans"
+                            placeholder="Room ID" onkeypress="if(event.key === 'Enter') confirmAddRoom()">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 pt-4">
+                        <button onclick="prevStep()"
+                            class="w-full py-4 bg-white border border-slate-200 text-slate-500 rounded-2xl font-medium text-sm transition-all hover:bg-slate-50 active:scale-95 font-sans">
+                            Back
+                        </button>
+                        <button onclick="confirmAddRoom()"
+                            class="w-full py-4 bg-green-50 hover:bg-green-100 text-green-700 rounded-2xl font-bold text-sm transition-all active:scale-95 border border-green-200 shadow-sm font-sans">
+                            Join Chat
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="image_lightbox"
+        class="fixed inset-0 z-[200] hidden items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 md:p-10 transition-all duration-300"
+        onclick="closeLightbox()">
+        <div class="relative max-w-5xl w-full h-full flex items-center justify-center animate-in zoom-in duration-300">
+            <button
+                class="absolute top-0 right-[-10px] md:top-4 md:right-4 text-white hover:text-slate-300 transition-colors z-10">
+                <span class="material-icons text-4xl">close</span>
+            </button>
+            <img id="lightbox_img" src="" alt="Full size image"
+                class="max-w-full max-h-full object-contain rounded-lg shadow-2xl shadow-black/50 hidden"
+                onclick="event.stopPropagation()">
+            <video id="lightbox_video" controls
+                class="max-w-full max-h-full rounded-lg shadow-2xl shadow-black/50 hidden"
+                onclick="event.stopPropagation()">
+                <source id="lightbox_video_source" src="" type="video/mp4">
+            </video>
+        </div>
+    </div>
+
+    <script>
+        const username = "{{ request.user.username }}";
+        const initialRoomId = "{{ room_id }}";
+
+        // Multi-rooms
+        let activeRooms = {};
+        let currentRoomId = null;
+
+        // Initialize the first room
+        window.addEventListener('DOMContentLoaded', () => {
+            joinRoom(initialRoomId);
+        });
+
+        // Receive postMessage signals from the call popup
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin) return;
+            if (event.data && event.data.type === 'call_left') {
+                const room = activeRooms[currentRoomId];
+                if (room && room.socket && room.isConnected) {
+                    room.socket.send(JSON.stringify({ "call_leave": "true", "user": event.data.username }));
+                }
+            }
+        });
+
+        function joinRoom(roomId) {
+            // Don't join if already in this room
+            if (activeRooms[roomId]) {
+                switchToRoom(roomId);
+                return;
+            }
+
+            // Create room object
+            activeRooms[roomId] = {
+                socket: null,
+                messages: [],
+                notifications: [],
+                roomName: `Room ${roomId}`,
+                isConnected: false
+            };
+
+            // Create WebSocket connection
+            const ws = new WebSocket(`ws://${window.location.host}/1-on-1_chat/${roomId}/${username}/`);
+            activeRooms[roomId].socket = ws;
+
+            ws.onopen = () => {
+                activeRooms[roomId].isConnected = true;
+                console.log(`Connected to room ${roomId}`);
+            };
+
+            ws.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                handleRoomMessage(roomId, data);
+            };
+
+            ws.onclose = () => {
+                activeRooms[roomId].isConnected = false;
+                console.log(`Disconnected from room ${roomId}`);
+            };
+
+            // Add room tab
+            addRoomTab(roomId);
+
+            // Switch to this room
+            switchToRoom(roomId);
+        }
+
+        function handleRoomMessage(roomId, data) {
+            const room = activeRooms[roomId];
+
+            if (data.type === "channel_info") {
+                document.cookie = `channel_name=${data.message}; path=/;`;
+            } else if (data.type === "system_message") {
+                room.notifications.push({ text: data.message, type: "info" });
+            } else if (data.type === "user_connected") {
+                room.notifications.push({ text: data.message, type: "success" });
+            } else if (data.type === "chat_rename") {
+                room.roomName = data.new_chat_name;
+                room.notifications.push({ text: `Room renamed to: ${data.new_chat_name}`, type: "rename" });
+                updateRoomTab(roomId);
+            } else if (data.type === "user_disconnected") {
+                room.notifications.push({ text: data.message, type: "warning" });
+            } else if (data.type === "max_members") {
+                showMaxMembersModal(data.message);
+                // Remove this room since we can't join
+                delete activeRooms[roomId];
+                removeRoomTab(roomId);
+                return;
+            } else if (data.type === "tried_connecting") {
+                room.notifications.push({ text: data.message, type: "alert" });
+            } else if (data.type === "chat_message") {
+                room.messages.push({
+                    user: data.user,
+                    message: data.message,
+                    media_url: null,
+                    media_type: null
+                });
+                updateRoomTab(roomId);
+            } else if (data.type === "media_file") {
+                room.messages.push({
+                    user: data.user,
+                    message: data.message || "",
+                    media_url: data.media_url,
+                    media_type: data.media_type
+                });
+            } else if (data.type === "call_join_event") {
+                room.notifications.push({ text: `${data.user} has joined the call.`, type: "call" });
+            } else if (data.type === "call_leave_event") {
+                room.notifications.push({ text: `${data.user} has left the call.`, type: "call_end" });
+            }
+
+            // Update UI if this is the current room
+            if (currentRoomId === roomId) {
+                renderCurrentRoom();
+            }
+        }
+
+        function switchToRoom(roomId) {
+            currentRoomId = roomId;
+            renderCurrentRoom();
+            updateActiveTab(roomId);
+        }
+
+        function renderCurrentRoom() {
+            const room = activeRooms[currentRoomId];
+            if (!room) return;
+
+            // Update room name in header
+            document.getElementById("room_name_display").textContent = room.roomName;
+
+            // Render messages
+            const messageContainer = document.getElementById("message_container");
+            messageContainer.innerHTML = "";
+            room.messages.forEach(msg => {
+                appendChatMessageToDOM(msg.user, msg.message, msg.media_url, msg.media_type);
+            });
+
+            // Render notifications
+            const notificationsContainer = document.getElementById("notifications_container");
+            notificationsContainer.innerHTML = "";
+            room.notifications.forEach(notif => {
+                appendNotificationToDOM(notif.text, notif.type);
+            });
+        }
+
+        function addRoomTab(roomId) {
+            const roomListContainer = document.getElementById("room_list_container");
+            const room = activeRooms[roomId];
+
+            const roomCard = document.createElement("div");
+            roomCard.id = `room_tab_${roomId}`;
+            roomCard.className = "room-tab bg-white border-2 border-slate-200 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:shadow-md";
+            roomCard.onclick = () => switchToRoom(roomId);
+
+            roomCard.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <p class="text-sm font-bold text-slate-900 truncate max-w-[200px]">${room.roomName}</p>
+                </div>
+            `;
+
+            roomListContainer.appendChild(roomCard);
+        }
+
+        function updateRoomTab(roomId) {
+            const roomCard = document.getElementById(`room_tab_${roomId}`);
+            if (roomCard) {
+                const room = activeRooms[roomId];
+                const nameElement = roomCard.querySelector('p.text-sm.font-bold');
+                if (nameElement) {
+                    nameElement.textContent = room.roomName;
+                }
+            }
+        }
+
+        function removeRoomTab(roomId) {
+            const roomCard = document.getElementById(`room_tab_${roomId}`);
+            if (roomCard) {
+                roomCard.remove();
+            }
+        }
+
+        function updateActiveTab(roomId) {
+            // Remove active state from all room cards
+            document.querySelectorAll('.room-tab').forEach(card => {
+                card.classList.remove('border-slate-900', 'bg-slate-50', 'shadow-md');
+                card.classList.add('border-slate-200', 'bg-white');
+            });
+
+            // Add active state to current room card
+            const activeCard = document.getElementById(`room_tab_${roomId}`);
+            if (activeCard) {
+                activeCard.classList.add('border-slate-900', 'bg-slate-50', 'shadow-md');
+                activeCard.classList.remove('border-slate-200', 'bg-white');
+            }
+        }
+
+        function closeRoom(roomId) {
+            // Close WebSocket connection
+            if (activeRooms[roomId] && activeRooms[roomId].socket) {
+                activeRooms[roomId].socket.close();
+            }
+
+            // Remove from active rooms
+            delete activeRooms[roomId];
+
+            // Remove tab
+            removeRoomTab(roomId);
+
+            const remainingRooms = Object.keys(activeRooms);
+
+            // If no rooms left, redirect home with username preservation
+            if (remainingRooms.length === 0) {
+                window.location.href = `/?username=${encodeURIComponent(username)}`;
+                return;
+            }
+
+            // If we closed the current room, switch to another
+            if (currentRoomId === roomId) {
+                switchToRoom(remainingRooms[0]);
+            }
+        }
+
+        function leaveCurrentRoom() {
+            if (currentRoomId) {
+                closeRoom(currentRoomId);
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById("message_input");
+            const message = input.value.trim();
+            if (message !== "" && currentRoomId) {
+                const room = activeRooms[currentRoomId];
+                if (room && room.socket && room.isConnected) {
+                    room.socket.send(JSON.stringify({ "sent_text": message, "user": username }));
+                    input.value = "";
+                }
+            }
+        }
+
+        function uploadFile(input) {
+            const file = input.files[0];
+            if (!file || !currentRoomId) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('room_id', currentRoomId);
+            formData.append('username', username);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            fetch('/media_sent/', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const room = activeRooms[currentRoomId];
+                        if (room && room.socket && room.isConnected) {
+                            room.socket.send(JSON.stringify({
+                                "user": username,
+                                "media_url": data.url,
+                                "media_type": data.media_type
+                            }));
+                        }
+                    } else {
+                        alert('Upload failed: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred during upload.');
+                })
+                .finally(() => {
+                    input.value = ''; // Reset input
+                });
+        }
+
+        function toggleRename() {
+            const ui = document.getElementById("rename_ui");
+            const btnText = document.getElementById("rename_btn_text");
+
+            if (ui.classList.contains('hidden')) {
+                ui.classList.remove('hidden');
+                ui.classList.add('flex');
+                btnText.textContent = "Cancel";
+                document.getElementById("rename_input").focus();
+            } else {
+                ui.classList.add('hidden');
+                ui.classList.remove('flex');
+                btnText.textContent = "Rename";
+            }
+        }
+
+        function submitRename() {
+            const input = document.getElementById("rename_input");
+            const newName = input.value.trim();
+            if (newName !== "" && currentRoomId) {
+                const room = activeRooms[currentRoomId];
+                if (room && room.socket && room.isConnected) {
+                    room.socket.send(JSON.stringify({ "rename_chat": newName }));
+                    toggleRename();
+                    input.value = "";
+                }
+            }
+        }
+
+        function appendNotificationToDOM(text, type = "info") {
+            const notificationsContainer = document.getElementById("notifications_container");
+            const div = document.createElement("div");
+            div.className = "p-4 rounded-xl border text-sm animate-in fade-in slide-in-from-right-2 duration-300";
+
+            let icon = "info";
+            let bgColor = "bg-blue-50";
+            let borderColor = "border-blue-200";
+            let textColor = "text-blue-700";
+
+            if (type === "success") {
+                icon = "person_add";
+                bgColor = "bg-green-50";
+                borderColor = "border-green-200";
+                textColor = "text-green-700";
+            } else if (type === "warning") {
+                icon = "person_remove";
+                bgColor = "bg-red-50";
+                borderColor = "border-red-200";
+                textColor = "text-red-700";
+            } else if (type === "rename") {
+                icon = "auto_fix_high";
+                bgColor = "bg-purple-50";
+                borderColor = "border-purple-200";
+                textColor = "text-purple-700";
+            } else if (type === "alert") {
+                icon = "priority_high";
+                bgColor = "bg-orange-50";
+                borderColor = "border-orange-200";
+                textColor = "text-orange-700";
+            } else if (type === "call") {
+                icon = "call";
+                bgColor = "bg-blue-50";
+                borderColor = "border-blue-200";
+                textColor = "text-blue-700";
+            } else if (type === "call_end") {
+                icon = "call_end";
+                bgColor = "bg-slate-50";
+                borderColor = "border-slate-300";
+                textColor = "text-slate-500";
+            }
+
+            div.className += ` ${bgColor} ${borderColor}`;
+            div.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <span class="material-icons text-base ${textColor}">${icon}</span>
+                    <p class="${textColor} font-medium leading-relaxed flex-1">${text}</p>
+                </div>
+            `;
+
+            notificationsContainer.appendChild(div);
+            notificationsContainer.scrollTop = notificationsContainer.scrollHeight;
+        }
+
+        function appendChatMessageToDOM(sender, text, mediaUrl = null, mediaType = null) {
+            const messageContainer = document.getElementById("message_container");
+            const isMe = sender === username;
+            const hasText = text && text.trim() !== "";
+            const hasMedia = !!mediaUrl;
+
+            const div = document.createElement("div");
+            div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`;
+
+            const bubbleBg = isMe ? 'bg-gradient-to-br from-slate-800 to-slate-900 text-white' : 'bg-white text-slate-700';
+            const bubbleBorder = isMe ? 'border-slate-800' : 'border-slate-200';
+            const bubbleRadius = isMe ? 'rounded-3xl rounded-br-none' : 'rounded-3xl rounded-bl-none';
+
+            let contentHtml = '';
+
+            if (hasMedia && !hasText && mediaType === 'image') {
+                // Image only: Just show the image with no bubble background
+                contentHtml = `
+                    <div class="rounded-2xl overflow-hidden border border-slate-200 shadow-md cursor-pointer max-w-sm">
+                        <img src="${mediaUrl}" alt="shared image" class="w-full h-auto block object-contain" onclick="openLightbox('${mediaUrl}', 'image')">
+                    </div>`;
+            } else if (hasMedia && !hasText && mediaType === 'video') {
+                // Video only: Just show the video preview with no bubble background
+                contentHtml = `
+                    <div class="rounded-2xl overflow-hidden border border-slate-200 shadow-md cursor-pointer max-w-sm relative group" onclick="openLightbox('${mediaUrl}', 'video')">
+                        <video class="w-full h-auto block object-contain">
+                            <source src="${mediaUrl}" type="video/mp4">
+                        </video>
+                        <div class="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/30 transition-all">
+                            <span class="material-icons text-white text-5xl opacity-80 group-hover:opacity-100 transition-opacity">play_circle_outline</span>
+                        </div>
+                    </div>`;
+            } else {
+                // Standard bubble for text or mixed content
+                let mediaHtml = '';
+                if (hasMedia) {
+                    if (mediaType === 'image') {
+                        mediaHtml = `
+                            <div class="mt-2 rounded-xl overflow-hidden border border-slate-100/20 shadow-sm cursor-pointer">
+                                <img src="${mediaUrl}" alt="shared image" class="w-full h-auto block" onclick="openLightbox('${mediaUrl}', 'image')">
+                            </div>`;
+                    } else if (mediaType === 'video') {
+                        mediaHtml = `
+                            <div class="mt-2 rounded-xl overflow-hidden border border-slate-100/20 shadow-sm bg-slate-900/10 cursor-pointer relative group" onclick="openLightbox('${mediaUrl}', 'video')">
+                                <video class="max-w-full max-h-64 mx-auto block">
+                                    <source src="${mediaUrl}" type="video/mp4">
+                                </video>
+                                <div class="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/30 transition-all">
+                                    <span class="material-icons text-white text-5xl opacity-80 group-hover:opacity-100 transition-opacity">play_circle_outline</span>
+                                </div>
+                            </div>`;
+                    } else if (mediaType === 'audio') {
+                        // ... audio implementation ...
+                        mediaHtml = `
+                            <div class="mt-2 rounded-full overflow-hidden border border-slate-100/20 shadow-sm p-1 bg-white/20">
+                                <audio controls class="w-full h-10 block">
+                                    <source src="${mediaUrl}" type="audio/mpeg">
+                                </audio>
+                            </div>`;
+                    }
+                }
+
+                const textHtml = hasText ? `<p class="leading-relaxed font-normal text-[15px]">${text}</p>` : '';
+
+                contentHtml = `
+                    <div class="${bubbleBg} px-5 py-3.5 ${bubbleRadius} border ${bubbleBorder} shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)]">
+                        ${textHtml}
+                        ${mediaHtml}
+                    </div>`;
+            }
+
+            div.innerHTML = `
+                <div class="flex items-end gap-2 max-w-[85%] md:max-w-[70%] ${isMe ? 'flex-row-reverse' : ''}">
+                    <div class="flex-shrink-0 mb-1">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm border ${isMe ? 'bg-slate-100 text-slate-900 border-slate-200' : 'bg-slate-900 text-white border-slate-800'}">
+                            ${sender.slice(0, 1).toUpperCase()}
+                        </div>
+                    </div>
+                    <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">${isMe ? 'You' : sender}</span>
+                        ${contentHtml}
+                    </div>
+                </div>
+            `;
+
+            messageContainer.appendChild(div);
+            messageContainer.scrollTo({
+                top: messageContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        // Modal functions
+        let selectedChatType = '1-on-1_chat';
+
+        function showAddRoomModal() {
+            const modal = document.getElementById("add_room_modal");
+            document.getElementById("modal_step_1").classList.remove("hidden");
+            document.getElementById("modal_step_2").classList.add("hidden");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function selectChatType(type) {
+            selectedChatType = type;
+            document.getElementById("modal_step_1").classList.add("hidden");
+            document.getElementById("modal_step_2").classList.remove("hidden");
+
+            const icon = document.getElementById("step_2_icon");
+            const title = document.getElementById("step_2_title");
+
+            if (type === '1-on-1_chat') {
+                icon.textContent = "person";
+                title.textContent = "1-on-1 Room";
+            } else {
+                icon.textContent = "groups";
+                title.textContent = "Group Channel";
+            }
+
+            setTimeout(() => document.getElementById("new_room_id_input").focus(), 100);
+        }
+
+        function prevStep() {
+            document.getElementById("modal_step_1").classList.remove("hidden");
+            document.getElementById("modal_step_2").classList.add("hidden");
+        }
+
+        function hideAddRoomModal() {
+            const modal = document.getElementById("add_room_modal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+            document.getElementById("new_room_id_input").value = "";
+        }
+
+        function confirmAddRoom() {
+            const roomId = document.getElementById("new_room_id_input").value.trim();
+            if (roomId) {
+                // If the selected type is 1-on-1, use internal joinRoom to stay in the multi-tab interface
+                // Otherwise, if it's Group (and we are in 1-on-1 page), we MUST redirect because the template is different
+                if (selectedChatType === '1-on-1_chat') {
+                    joinRoom(roomId);
+                    hideAddRoomModal();
+                } else {
+                    window.location.href = `/group_chat/${roomId}/`;
+                }
+            }
+        }
+
+        function showMaxMembersModal(message) {
+            const modal = document.getElementById("max_members_modal");
+            const messageEl = document.getElementById("max_members_message");
+            messageEl.textContent = message;
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function handleRoomFullBack() {
+            const modal = document.getElementById("max_members_modal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+
+            const remainingRooms = Object.keys(activeRooms);
+            if (remainingRooms.length > 0) {
+                // Return to the first available room
+                switchToRoom(remainingRooms[0]);
+            } else {
+                // If no rooms left, go home with username preservation
+                window.location.href = `{% url 'home' %}`;
+            }
+        }
+
+        // Lightbox functions
+        function openLightbox(url, type = 'image') {
+            const lightbox = document.getElementById("image_lightbox");
+            const img = document.getElementById("lightbox_img");
+            const video = document.getElementById("lightbox_video");
+            const videoSource = document.getElementById("lightbox_video_source");
+
+            if (type === 'image') {
+                img.src = url;
+                img.classList.remove("hidden");
+                video.classList.add("hidden");
+            } else if (type === 'video') {
+                videoSource.src = url;
+                video.load();
+                video.classList.remove("hidden");
+                img.classList.add("hidden");
+                video.play().catch(err => console.log("Auto-play blocked:", err));
+            }
+
+            lightbox.classList.remove("hidden");
+            lightbox.classList.add("flex");
+            document.body.style.overflow = "hidden"; // Prevent scrolling
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById("image_lightbox");
+            const img = document.getElementById("lightbox_img");
+            const video = document.getElementById("lightbox_video");
+            const videoSource = document.getElementById("lightbox_video_source");
+
+            // Pause and clear video
+            video.pause();
+            videoSource.src = "";
+            video.load();
+
+            lightbox.classList.add("hidden");
+            lightbox.classList.remove("flex");
+            img.classList.add("hidden");
+            video.classList.add("hidden");
+            document.body.style.overflow = "auto";
+        }
+
+        async function initiateCall() {
+            if (currentRoomId) {
+                const url = `/call/?room=${currentRoomId}`;
+                const response = await fetch(url);
+                const contentType = response.headers.get("content-type");
+
+                if (contentType && contentType.includes("application/json")) {
+                    const data = await response.json();
+                    
+                    // Manually add a notification to the local room state and DOM
+                    const room = activeRooms[currentRoomId];
+                    if (room) {
+                        const cautionMsg = `Please leave the call in room ${data.room} before.`;
+                        room.notifications.push({ text: cautionMsg, type: "alert" });
+                        appendNotificationToDOM(cautionMsg, "alert");
+                    }
+                    return;
+                }
+
+                // Open in a small popup window
+                const width = 450;
+                const height = 550;
+                const left = (window.screen.width / 2) - (width / 2);
+                const top = (window.screen.height / 2) - (height / 2);
+                
+                window.open(url, 'VoiceCall', 
+                    `width=${width},height=${height},left=${left},top=${top},menubar=no,status=no,toolbar=no,location=no`);
+                
+                // Still send the signaling message to others
+                call_join_signal();
+            }
+        }
+
+        function call_join_signal() {
+            const room = activeRooms[currentRoomId];
+            if (room && room.socket && room.isConnected) {
+                room.socket.send(JSON.stringify({ 
+                    "call_initate": "true"
+                }));
+            }
+        }
+
+        function sendCallJoinSignal() {
+            const room = activeRooms[currentRoomId];
+            if (room && room.socket && room.isConnected) {
+                room.socket.send(JSON.stringify({ "call_join": "true", "user": username }));
+            }
+        }
+    </script>
+</body>
+</html>
