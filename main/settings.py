@@ -11,7 +11,7 @@ MEDIA_URL = '/media/'
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-dev-key-change-me')
 
-DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
