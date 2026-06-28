@@ -25,7 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'channels',
     'consumers',
-    'channels_presence.apps.ChannelsPresenceConfig',
+    'main.apps.ChannelsPresenceConfig',
     'main'
 ]
 
