@@ -15,6 +15,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-dev-key-change-me
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
 
 INSTALLED_APPS = [
     'daphne',
