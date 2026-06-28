@@ -878,6 +878,14 @@
                 }));
             }
         }
+
+        function sendCallJoinSignal() {
+            const room = activeRooms[currentRoomId];
+            if (room && room.socket && room.isConnected) {
+                room.socket.send(JSON.stringify({ "call_join": "true", "user": username }));
+            }
+        }
+
         
     </script>
 </body>
