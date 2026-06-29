@@ -48,8 +48,8 @@ EMAIL_HOST = 'smtp-relay.brevo.com'
 EMAIL_PORT = 2525
 EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER = 'b0377b001@smtp-brevo.com'
-EMAIL_HOST_PASSWORD = 'xsmtpsib-19269c4601e6bce2eb27c6d88e3e09d2aaa2e0a3bc30f750f8dd5e5284020661-04VmAP66M0pF0TNd'
+EMAIL_HOST_USER = os.getenv('USER')
+EMAIL_HOST_PASSWORD = os.getenv('PASSWORD')
 
 DEFAULT_FROM_EMAIL = 'Konnect <Aapratimboy@gmail.com>'
 SERVER_EMAIL = 'Aapratimboy@gmail.com'
