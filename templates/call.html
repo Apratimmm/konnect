@@ -65,7 +65,7 @@
 
 <body class="h-screen w-screen flex flex-col overflow-hidden bg-pattern">
 
-    <!-- Header -->
+    
     <header class="p-5 flex items-center justify-between border-b border-blue-50 bg-white/60 backdrop-blur-md z-10">
         <div class="flex items-center gap-3">
             <div class="p-2 bg-green-500/10 rounded-xl">
@@ -80,7 +80,7 @@
         <p id="call_timer" class="text-xs font-mono text-slate-400 tracking-widest">00:00</p>
     </header>
 
-    <!-- Content Area -->
+    
     <main id="participants_container"
         class="flex-1 flex flex-wrap items-center justify-center gap-6 p-6 overflow-y-auto custom-scrollbar transition-all duration-300">
         <div id="loader" class="flex flex-col items-center gap-4 text-slate-400 animate-bounce">
@@ -89,22 +89,22 @@
         </div>
     </main>
 
-    <!-- Controls -->
+    
     <footer
         class="p-8 pb-10 bg-white/60 backdrop-blur-xl border-t border-blue-50 flex items-center justify-center gap-8 z-10">
-        <!-- Mic Toggle -->
+        
         <button id="toggle_mic_btn" onclick="window.callToggleMic()"
             class="group w-14 h-14 glass-panel hover:bg-white text-slate-600 rounded-2xl flex items-center justify-center shadow-marble transition-all active:scale-90 border-slate-200">
             <span class="material-icons text-2xl group-hover:scale-110 transition-transform">mic</span>
         </button>
 
-        <!-- End Call -->
+        
         <button onclick="window.close()"
             class="w-16 h-16 bg-red-500 hover:bg-red-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-red-500/30 transition-all active:scale-95 group">
             <span class="material-icons text-3xl group-hover:rotate-135 transition-transform">call_end</span>
         </button>
 
-        <!-- Video Toggle -->
+        
         <button id="toggle_video_btn" onclick="window.callToggleVideo()"
             class="group w-14 h-14 glass-panel hover:bg-white text-slate-600 rounded-2xl flex items-center justify-center shadow-marble transition-all active:scale-90 border-slate-200">
             <span class="material-icons text-2xl group-hover:scale-110 transition-transform">videocam_off</span>

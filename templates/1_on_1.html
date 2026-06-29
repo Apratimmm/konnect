@@ -66,9 +66,9 @@
 <body class="min-h-screen flex flex-col items-center p-1 lg:p-2 bg-white">
 
     <div class="flex gap-4 w-full h-[95vh] max-w-[98%] mt-1">
-        <!-- Left Sidebar Column (User Info + Activity Feed) -->
+        
         <aside class="w-80 flex flex-col gap-4 h-full flex-shrink-0">
-            <!-- User Info Card -->
+            
             <div
                 class="px-8 py-6 flex items-center gap-3 bg-white h-24 rounded-2xl shadow-sm border border-slate-200 flex-shrink-0">
                 <div
@@ -78,15 +78,15 @@
                 <p class="font-medium text-slate-900">{{ request.user.username }}</p>
             </div>
 
-            <!-- Activity Feed Card -->
+            
             <div id="notifications_container"
                 class="p-4 space-y-3 overflow-y-auto custom-scrollbar flex-1 bg-white rounded-2xl shadow-sm border border-slate-200">
-                <!-- System messages and rename notifications will appear here -->
+                
             </div>
 
         </aside>
 
-        <!-- Chat Window Card (Center) -->
+        
         <main
             class="flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full">
             <header class="px-8 py-6 flex items-center justify-between border-b border-gray-100 h-24 flex-shrink-0">
@@ -96,7 +96,7 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-3 relative">
-                    <!-- Rename UI (Hidden by default, extends to the left) -->
+                    
                     <div id="rename_ui"
                         class="hidden items-center gap-2 bg-white border border-slate-200 rounded-full px-2 py-1 shadow-sm mr-2 animate-in fade-in slide-in-from-right-4 duration-300">
                         <input id="rename_input" type="text"
@@ -123,13 +123,13 @@
                 </div>
             </header>
 
-            <!-- Message Area -->
+            
             <div id="message_container"
                 class="flex-1 overflow-y-auto p-6 md:p-10 space-y-6 custom-scrollbar bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] bg-slate-50/30">
-                <!-- Messages will be appended here -->
+                
             </div>
 
-            <!-- Footer Area -->
+            
             <footer class="h-24 p-5 bg-white border-t border-gray-100 flex-shrink-0 flex items-center">
                 <div
                     class="w-full flex items-center gap-4 bg-slate-50 p-2 pl-6 rounded-full border border-gray-200 focus-within:bg-white focus-within:ring-1 focus-within:ring-slate-200 transition-all">
@@ -154,9 +154,9 @@
             </footer>
         </main>
 
-        <!-- Right Sidebar (Chat Container) -->
+        
         <aside class="w-80 flex flex-col gap-4 h-full flex-shrink-0">
-            <!-- Active Rooms Card -->
+            
             <div class="flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <header class="px-8 py-6 h-24 flex items-center justify-between border-b border-gray-100 flex-shrink-0">
                     <h3 class="text-lg font-bold text-slate-900">Active Rooms</h3>
@@ -166,11 +166,11 @@
                     </button>
                 </header>
                 <div id="room_list_container" class="flex-1 p-6 space-y-2 overflow-y-auto custom-scrollbar">
-                    <!-- Room list items will be added here -->
+                    
                 </div>
             </div>
 
-            <!-- Navigation Card -->
+            
             <div
                 class="h-24 p-5 bg-white rounded-2xl shadow-sm border border-slate-200 flex-shrink-0 flex items-center">
                 <button onclick="window.location.href=`{% url 'home' %}`"
@@ -182,7 +182,7 @@
         </aside>
     </div>
 
-    <!-- Max Members Modal -->
+    
     <div id="max_members_modal"
         class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
         <div
@@ -200,7 +200,7 @@
         </div>
     </div>
 
-    <!-- Add Room Modal -->
+    
     <div id="add_room_modal"
         class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
         <div
