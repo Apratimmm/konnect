@@ -51,8 +51,8 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('USER')
 EMAIL_HOST_PASSWORD = os.getenv('PASSWORD')
 
-DEFAULT_FROM_EMAIL = 'Konnect <Aapratimboy@gmail.com>'
-SERVER_EMAIL = 'Aapratimboy@gmail.com'
+DEFAULT_FROM_EMAIL = 'Konnect <apratimkhadkaaa99@gmail.com>'
+SERVER_EMAIL = 'apratimkhadkaaa99@gmail.com'
 
 ROOT_URLCONF = 'main.urls'
 
